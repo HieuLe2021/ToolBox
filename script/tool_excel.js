@@ -115,7 +115,7 @@ function handleFile(e) {
                     jsonData[0].forEach(function (cellData, index) {
                         const th = document.createElement('th');
                         th.textContent = cellData !== undefined ? cellData : '';
-                        th.style.width = '150px';  // Căn chỉnh cột theo chiều rộng hợ
+                        th.style.width = '150px';  // Căn chỉnh cột theo chiều rộng hợgdúagud
                         headerRow.appendChild(th);
                     });
                     table.appendChild(headerRow);
