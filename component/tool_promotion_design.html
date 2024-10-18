@@ -1,37 +1,738 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
-    <title>Promotion Design Tool - Toolbox</title>
+    <title>Power BI mini</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            position: absolute;
+            width: 400px;
+            height: 300px;
+            resize: both;
+            overflow: hidden;
+            border: 1px solid #ced6e0;
+            cursor: grab;
+        }
+
+        #visualization-display-area {
+            padding-top: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .visualization-tools {
+            padding-top: 20px;
+
+        }
+
+        .visualization-tools button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            padding-left: 10px;
+            padding-bottom: 10px;
+        }
+
+        .visualization-tools button:hover {
+            color: #007bff;
+
+        }
+
+        #content {
+            display: flex;
+        }
+
+        #visualization-display-area {
+            flex: 1;
+            padding: 10px;
+            overflow: auto;
+            border: 1px solid #ced6e0;
+
+        }
+
+        #right-panel {
+            width: 200px;
+            padding: 10px;
+            border-left: 1px solid #ced6e0;
+        }
+
+        .custom-button {
+            background-color: #16a1cb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: block;
+            margin-top: 20px;
+        }
+
+        .custom-button:hover {
+            background-color: #146b90;
+        }
+    </style>
 </head>
+
 <body>
     <!-- Placeholder cho sidebar -->
     <div id="sidebar-placeholder"></div>
-
     <!-- Nội dung chính -->
     <div id="content">
-        <h1>Promotion Design Tool</h1>
-        <p>Sử dụng công cụ này để thiết kế các ấn phẩm quảng cáo.</p>
+        <!-- <div>
+            <h1>Power BI mini</h1>
+            <p>Design báo cáo</p>
+        </div> -->
 
-        <!-- Các nút chức năng cho Promotion Design -->
-        <div class="promotion-tools">
-            <button id="btn-add-banner">Add Banner</button>
-            <button id="btn-add-discount">Add Discount Box</button>
+        <div id="visualization-display-area">
+            <!-- Các chart sẽ được tạo và hiển thị ở đây -->
         </div>
 
-        <!-- Vùng để hiển thị và tương tác với thiết kế -->
-        <div id="promotion-design-area" style="border: 1px solid #ced6e0; margin-top: 20px; padding: 20px;">
-            <p>Thiết kế của bạn sẽ hiển thị tại đây.</p>
+        <!-- Right panel -->
+        <div id="right-panel">
+            <h2>Visualization</h2>
+            <!-- Chart -->
+            <div class="visualization-tools">
+                <button id="btn-add-grouped-bar-chart" title="Grouped Bar Chart"><i class="fas fa-columns"></i></button>
+                <button id="btn-add-stacked-bar-chart" title="Stacked Bar Chart"><i
+                        class="fas fa-layer-group"></i></button>
+                <button id="btn-add-horizontal-bar-chart" title="Horizontal Bar Chart"><i class="fas fa-chart-bar"
+                        style="transform: rotate(90deg);"></i></button>
+                <button id="btn-add-bar-chart" title="Bar Chart"><i class="fas fa-chart-bar"></i></button>
+                <button id="btn-add-line-chart" title="Line Chart"><i class="fas fa-chart-line"></i></button>
+                <button id="btn-add-area-chart" title="Area Chart"><i class="fas fa-chart-area"></i></button>
+                <button id="btn-add-stacked-line-chart" title="Stacked Line Chart"><i
+                        class="fas fa-layer-group"></i></button>
+                <button id="btn-add-multi-line-chart" title="Multi-Line Chart"><i
+                        class="fas fa-chart-line"></i></button>
+                <button id="btn-add-pie-chart" title="Pie Chart"><i class="fas fa-chart-pie"></i></button>
+                <button id="btn-add-doughnut-chart" title="Doughnut Chart"><i class="fas fa-circle"></i></button>
+                <button id="btn-add-text" title="Text"><i class="fas fa-font"></i></button>
+            </div>
+            <!-- Button -->
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-save-custom-chart" class="custom-button">Save</button>
+                <button id="btn-import-custom-chart" class="custom-button">Import</button>
+                <input type="file" id="import-file" style="display:none" accept=".json">
+            </div>
         </div>
     </div>
 
-    <!-- JavaScript chung -->
+    <!-- JavaScript -->
     <script src="../script/main.js"></script>
     <script>
+        // Load sidebar
         loadSidebar('link-tool-promotion-design');
+
+        // Tải lại các biểu đồ
+        window.addEventListener('load', loadSavedCharts);
+
+        // Event listeners cho việc vẽ các loại biểu đồ
+        document.getElementById('btn-add-text').addEventListener('click', function () {
+            createTextInputContainer();
+        });
+
+        // Gán sự kiện khi nút Import được nhấn
+        document.getElementById('btn-import-custom-chart').addEventListener('click', function () {
+            document.getElementById('import-file').click(); // Mở cửa sổ chọn file
+        });
+
+        // Xử lý khi người dùng chọn file import
+        document.getElementById('import-file').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const chartsData = JSON.parse(e.target.result);
+                        if (Array.isArray(chartsData)) {
+                            // Xóa các biểu đồ hiện tại
+                            document.getElementById('visualization-display-area').innerHTML = '';
+
+                            // Lưu dữ liệu vào localStorage
+                            localStorage.setItem('savedCharts', JSON.stringify(chartsData));
+
+                            // Tạo lại biểu đồ từ dữ liệu đã import
+                            chartsData.forEach(chartInfo => {
+                                const canvas = createChartContainer(chartInfo.id); // Truyền ID từ dữ liệu import
+                                const ctx = canvas.getContext('2d');
+
+                                // Đặt vị trí và kích thước
+                                const chartContainer = canvas.parentElement;
+                                chartContainer.style.left = chartInfo.position.left;
+                                chartContainer.style.top = chartInfo.position.top;
+                                chartContainer.style.width = chartInfo.size.width;
+                                chartContainer.style.height = chartInfo.size.height;
+
+                                new Chart(ctx, {
+                                    type: chartInfo.type,
+                                    data: chartInfo.data,
+                                    options: chartInfo.options
+                                });
+                            });
+                        } else {
+                            alert('Dữ liệu không hợp lệ. Vui lòng chọn file JSON chứa các thông tin biểu đồ hợp lệ.');
+                        }
+                    } catch (error) {
+                        alert('Đã có lỗi xảy ra khi đọc file. Vui lòng kiểm tra lại.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Hàm tạo nhập text
+        function createTextInputContainer() {
+            const textInputContainer = document.createElement('div');
+            textInputContainer.classList.add('text-input-container');
+            textInputContainer.style.position = 'absolute';
+            textInputContainer.style.width = '200px';
+            textInputContainer.style.height = '100px';
+            textInputContainer.style.padding = '10px';
+
+            const input = document.createElement('textarea');
+            input.placeholder = 'Nhập văn bản...';
+            input.style.height = '80px';
+
+            // Tạo ID duy nhất cho mỗi container
+            const uniqueId = `chart-${Date.now()}`;
+            textInputContainer.setAttribute('data-chart-id', uniqueId);
+            const deleteButton = deleteChartContainer(textInputContainer);
+
+            textInputContainer.appendChild(input);
+            textInputContainer.appendChild(deleteButton);
+
+            document.getElementById('visualization-display-area').appendChild(textInputContainer);
+            makeDraggable(textInputContainer);
+            makeResizable(textInputContainer);
+
+            return textInputContainer;
+        }
+
+        // Hàm tạo chart và biểu đồ
+        function createChartContainer(existingId = null) {
+            const chartContainer = document.createElement('div');
+            chartContainer.classList.add('chart-container');
+            chartContainer.style.position = 'absolute'; // Cho phép di chuyển tự do
+
+            // Sử dụng ID truyền vào nếu có, nếu không thì tạo ID mới
+            const uniqueId = existingId || `chart-${Date.now()}`;
+            chartContainer.setAttribute('data-chart-id', uniqueId);
+
+            const canvas = document.createElement('canvas');
+            chartContainer.appendChild(canvas);
+
+            // Tạo và thêm nút xóa vào chart container
+            const deleteButton = deleteChartContainer(chartContainer);
+            chartContainer.appendChild(deleteButton);
+
+            document.getElementById('visualization-display-area').appendChild(chartContainer);
+
+            // Kéo thả và thay đổi kích thước
+            makeDraggable(chartContainer);
+            makeResizable(chartContainer);
+
+            return canvas;
+        }
+
+        // Hàm tạo nút xóa cho mỗi biểu đồ
+        function deleteChartContainer(chartContainer) {
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'x';
+            deleteButton.style.position = 'absolute';
+            deleteButton.style.top = '5px';
+            deleteButton.style.right = '5px';
+            deleteButton.style.background = 'rgb(240, 113, 113)';
+            deleteButton.style.width = '15px';
+            deleteButton.style.border = 'none';
+            deleteButton.style.color = 'white';
+
+            // Gọi hàm xóa biểu đồ khi nút xóa được nhấn
+            deleteButton.addEventListener('click', function () {
+                const uniqueId = chartContainer.getAttribute('data-chart-id');
+                chartContainer.remove();
+                console.log(uniqueId);
+                deleteChartFromLocalStorage(uniqueId); // Xóa biểu đồ khỏi localStorage
+            });
+
+            return deleteButton;
+        }
+
+
+        // Hàm xử lý kéo thả phần tử
+        function makeDraggable(element) {
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            // Lấy vùng visualization-display-area
+            const displayArea = document.getElementById('visualization-display-area');
+            const displayAreaRect = displayArea.getBoundingClientRect();
+
+            element.addEventListener('mousedown', function (e) {
+                const rect = element.getBoundingClientRect();
+                const isInResizeArea =
+                    e.clientX >= rect.right - 10 && e.clientX <= rect.right &&
+                    e.clientY >= rect.bottom - 10 && e.clientY <= rect.bottom;
+
+                if (e.target.tagName === 'CANVAS' || e.target.tagName === 'BUTTON' || isInResizeArea) return;
+
+                isDragging = true;
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                element.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', function (e) {
+                if (isDragging) {
+                    let newX = e.clientX - offsetX;
+                    let newY = e.clientY - offsetY;
+
+                    // Giới hạn vị trí kéo thả trong visualization-display-area
+                    if (newX < displayAreaRect.left) {
+                        newX = displayAreaRect.left;
+                    }
+                    if (newY < displayAreaRect.top) {
+                        newY = displayAreaRect.top;
+                    }
+                    if (newX + element.offsetWidth > displayAreaRect.right) {
+                        newX = displayAreaRect.right - element.offsetWidth;
+                    }
+                    if (newY + element.offsetHeight > displayAreaRect.bottom) {
+                        newY = displayAreaRect.bottom - element.offsetHeight;
+                    }
+
+                    element.style.left = `${newX}px`;
+                    element.style.top = `${newY}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', function () {
+                isDragging = false;
+                element.style.cursor = 'grab';
+            });
+        }
+
+        // Hàm xử lý thay đổi kích thước
+        function makeResizable(element) {
+            const resizer = document.createElement('div');
+            resizer.classList.add('resizer');
+            resizer.style.width = '10px';
+            resizer.style.height = '10px';
+            resizer.style.position = 'absolute';
+            resizer.style.right = '0';
+            resizer.style.bottom = '0';
+            resizer.style.cursor = 'se-resize';
+            resizer.style.zIndex = '10';
+            element.appendChild(resizer);
+
+            resizer.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                window.addEventListener('mousemove', resize);
+                window.addEventListener('mouseup', stopResize);
+            });
+
+            function resize(e) {
+                const newWidth = e.clientX - element.getBoundingClientRect().left;
+                const newHeight = e.clientY - element.getBoundingClientRect().top;
+
+                // Cập nhật kích thước chỉ khi nó lớn hơn một giá trị tối thiểu
+                if (newWidth > 100 && newHeight > 100) {
+                    element.style.width = `${newWidth}px`;
+                    element.style.height = `${newHeight}px`;
+                }
+            }
+
+            function stopResize() {
+                window.removeEventListener('mousemove', resize);
+                window.removeEventListener('mouseup', stopResize);
+            }
+        }
+
+        // Hàm vẽ biểu đồ
+        function renderChart(type, data, options) {
+            const canvas = createChartContainer();
+            const ctx = canvas.getContext('2d');
+
+            const chart = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            });
+
+            // Gọi hàm lưu biểu đồ vào localStorage
+            saveChartToLocalStorage(canvas.parentElement, type, data, options);
+        }
+
+        // Hàm để lưu các biểu đồ
+        document.getElementById('btn-save-custom-chart').addEventListener('click', function () {
+            const charts = document.querySelectorAll('.chart-container');
+            const chartsData = [];
+
+            charts.forEach(chartContainer => {
+                const canvas = chartContainer.querySelector('canvas');
+                const chartInstance = Chart.getChart(canvas); // Lấy instance của Chart.js từ canvas
+
+                if (chartInstance) {
+                    const chartInfo = {
+                        id: chartContainer.getAttribute('data-chart-id'), // Lưu ID duy nhất
+                        type: chartInstance.config.type,
+                        data: chartInstance.config.data,
+                        options: chartInstance.config.options,
+                        position: {
+                            left: chartContainer.style.left,
+                            top: chartContainer.style.top,
+                        },
+                        size: {
+                            width: chartContainer.style.width,
+                            height: chartContainer.style.height
+                        }
+                    };
+
+                    chartsData.push(chartInfo);
+                }
+            });
+
+            // Lưu dữ liệu vào localStorage hoặc tải xuống dưới dạng file
+            const jsonData = JSON.stringify(chartsData);
+
+            // Nếu muốn tải xuống file JSON
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'chartsData.json';
+            link.click();
+        });
+
+        // Hàm thêm chart vào localStorage
+        function saveChartToLocalStorage(chartContainer, type, data, options) {
+            const uniqueId = chartContainer.getAttribute('data-chart-id');
+            const chartInfo = {
+                id: uniqueId,
+                type: type,
+                data: data,
+                options: options,
+                position: {
+                    left: chartContainer.style.left,
+                    top: chartContainer.style.top,
+                },
+                size: {
+                    width: chartContainer.style.width,
+                    height: chartContainer.style.height
+                }
+            };
+
+            let savedCharts = localStorage.getItem('savedCharts');
+            savedCharts = savedCharts ? JSON.parse(savedCharts) : [];
+            savedCharts.push(chartInfo);
+            localStorage.setItem('savedCharts', JSON.stringify(savedCharts));
+        }
+
+        // Hàm xóa chart khỏi localStorage
+        function deleteChartFromLocalStorage(chartId) {
+            const savedCharts = localStorage.getItem('savedCharts');
+            if (savedCharts) {
+                let chartsData = JSON.parse(savedCharts);
+                chartsData = chartsData.filter(chartInfo => chartInfo.id !== chartId);
+                localStorage.setItem('savedCharts', JSON.stringify(chartsData));
+            }
+        }
+
+        // Hàm import các biểu đồ từ localStorage hoặc file JSON
+        function loadSavedCharts() {
+            const savedCharts = localStorage.getItem('savedCharts');
+            if (savedCharts) {
+                const chartsData = JSON.parse(savedCharts);
+
+                chartsData.forEach(chartInfo => {
+                    const canvas = createChartContainer(chartInfo.id); // Truyền ID đã lưu khi tạo
+                    const ctx = canvas.getContext('2d');
+
+                    // Đặt vị trí và kích thước
+                    const chartContainer = canvas.parentElement;
+                    chartContainer.style.left = chartInfo.position.left;
+                    chartContainer.style.top = chartInfo.position.top;
+                    chartContainer.style.width = chartInfo.size.width;
+                    chartContainer.style.height = chartInfo.size.height;
+
+                    new Chart(ctx, {
+                        type: chartInfo.type,
+                        data: chartInfo.data,
+                        options: chartInfo.options
+                    });
+                });
+            }
+        }
+
+        // Gọi các biểu đồ khi click vào icon
+        document.getElementById('btn-add-bar-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [{
+                    label: '# of Votes',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            renderChart('bar', data, options);
+        });
+
+        document.getElementById('btn-add-line-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                datasets: [{
+                    label: 'Sales',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            };
+            renderChart('line', data);
+        });
+
+        document.getElementById('btn-add-pie-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow'],
+                datasets: [{
+                    label: 'Colors',
+                    data: [300, 50, 100],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            renderChart('pie', data);
+        });
+
+        document.getElementById('btn-add-area-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [65, 59, 80, 81, 56, 55],
+                    fill: true,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            renderChart('line', data, options); // Sử dụng loại 'line' với fill
+        });
+
+        document.getElementById('btn-add-grouped-bar-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                datasets: [
+                    {
+                        label: 'Dataset 1',
+                        data: [12, 19, 3, 5, 2, 3],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    },
+                    {
+                        label: 'Dataset 2',
+                        data: [5, 10, 15, 7, 3, 8],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    },
+                ]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            renderChart('bar', data, options);
+        });
+
+        document.getElementById('btn-add-stacked-bar-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow', 'Green'],
+                datasets: [
+                    {
+                        label: 'Dataset 1',
+                        data: [12, 19, 3, 5],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    },
+                    {
+                        label: 'Dataset 2',
+                        data: [8, 10, 5, 12],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    },
+                ]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: true
+                    },
+                    x: {
+                        stacked: true
+                    }
+                }
+            };
+            renderChart('bar', data, options);
+        });
+
+        document.getElementById('btn-add-horizontal-bar-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow', 'Green'],
+                datasets: [{
+                    label: '# of Votes',
+                    data: [12, 19, 3, 5],
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                }]
+            };
+            const options = {
+                indexAxis: 'y', // Đặt trục x là trục nằm ngang
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            renderChart('bar', data, options);
+        });
+
+        document.getElementById('btn-add-stacked-line-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['January', 'February', 'March', 'April', 'May'],
+                datasets: [
+                    {
+                        label: 'Dataset 1',
+                        data: [10, 20, 30, 40, 50],
+                        fill: true,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                    },
+                    {
+                        label: 'Dataset 2',
+                        data: [20, 10, 25, 35, 45],
+                        fill: true,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                    },
+                ]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: true
+                    }
+                }
+            };
+            renderChart('line', data, options);
+        });
+
+        document.getElementById('btn-add-multi-line-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['January', 'February', 'March', 'April', 'May'],
+                datasets: [
+                    {
+                        label: 'Line 1',
+                        data: [10, 20, 30, 40, 50],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Line 2',
+                        data: [20, 10, 25, 35, 45],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Line 3',
+                        data: [30, 40, 15, 25, 35],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        fill: false
+                    },
+                ]
+            };
+            const options = {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            renderChart('line', data, options);
+        });
+
+        document.getElementById('btn-add-doughnut-chart').addEventListener('click', function () {
+            const data = {
+                labels: ['Red', 'Blue', 'Yellow'],
+                datasets: [{
+                    label: 'Colors',
+                    data: [300, 50, 100],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            const options = {
+                cutout: '70%' // Định dạng cho doughnut
+            };
+            renderChart('doughnut', data, options);
+        });
+
     </script>
     <script src="../script/tool_promotion_design.js"></script>
 </body>
+
 </html>
