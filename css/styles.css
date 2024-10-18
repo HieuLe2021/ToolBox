@@ -1,0 +1,331 @@
+/* Reset mặc định của trình duyệt */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Font chữ chung */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f1f2f6;
+    color: #2f3542;
+}
+
+/* Sidebar */
+#sidebar {
+    width: 250px;
+    background-color: #2f3542;
+    color: #ffffff;
+    height: 100vh;
+    overflow-y: auto;
+    position: fixed;
+    z-index: 9999;  /* Đảm bảo sidebar luôn hiển thị trên đầu */
+}
+
+#sidebar h2 {
+    padding: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #57606f;
+}
+
+#sidebar .menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#sidebar .menu li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#sidebar .menu li a {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+#sidebar .menu li a:hover,
+#sidebar .menu li a.active {
+    background-color: #57606f;
+}
+
+/* Nội dung chính */
+#content {
+    margin-left: 250px;
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    background-color: #ffffff;
+    transition: margin-left 0.3s ease;  /* Thêm hiệu ứng chuyển động khi sidebar ẩn hiện */
+}
+
+/* Tiêu đề trang */
+#content h1 {
+    font-size: 28px;
+    color: #2f3542;
+    margin-bottom: 20px;
+}
+
+/* Định dạng văn bản chung */
+#content p {
+    font-size: 16px;
+    color: #57606f;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* Liên kết trong nội dung */
+#content a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+#content a:hover {
+    text-decoration: underline;
+}
+
+/* Định dạng bảng */
+.table-wrapper {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.table th, .table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 14px;  /* Chỉnh sửa cỡ chữ bảng cho dễ nhìn */
+}
+
+.table th {
+    background-color: #2f3542;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.table td {
+    background-color: #ffffff;
+}
+
+/* Sheet container styles */
+.sheet-container {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2f3542;
+    color: #ffffff;
+    padding: 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #ddd;  /* Thêm viền dưới cho đẹp mắt */
+}
+
+.sheet-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.sheet-content {
+    padding: 15px;
+    display: none;
+    background-color: #f1f2f6;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    #sidebar {
+        width: 200px;
+    }
+    #content {
+        margin-left: 200px;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    body {
+        flex-direction: column;
+    }
+    #sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+    #sidebar .menu li {
+        display: inline-block;
+        border-bottom: none;
+    }
+    #sidebar .menu li a {
+        padding: 10px 15px;
+    }
+    #content {
+        margin-left: 0;
+        padding: 15px;
+    }
+}
+
+/* Popup overlay and styles */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Dim background */
+    display: none;
+    z-index: 9998; /* Đảm bảo overlay luôn ở trên */
+}
+
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    display: none;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.popup-content {
+    padding: 10px;
+    text-align: center;
+}
+
+.popup-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.save-data, .close-popup {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.close-popup {
+    background-color: #f44336; /* Màu đỏ cho nút đóng */
+}
+
+.close-popup:hover {
+    background-color: #d32f2f;
+}
+
+.save-data:hover {
+    background-color: #45a049;
+}
+
+.excel-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.excel-table th, .excel-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.excel-table th {
+    background-color: #f2f2f2;
+}
+
+/* Căn chỉnh popup với flexbox */
+#popup1 {
+    display: none;
+    width: 60%;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;  /* Đặt ở vị trí cố định trên màn hình */
+    top: 50%;  /* Đưa popup vào giữa theo chiều dọc */
+    left: 50%;  /* Đưa popup vào giữa theo chiều ngang */
+    transform: translate(-50%, -50%);  /* Căn giữa chính xác */
+    max-width: 800px;
+}
+
+#overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.input-group {
+    display: flex;
+    justify-content: space-between; /* Căn giữa các phần tử trái phải */
+    align-items: center; /* Căn giữa theo chiều dọc */
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    flex: 1;
+    font-size: 18px; /* Kích thước chữ tên cột lớn hơn */
+    text-align: left;
+    margin-right: 10px; /* Khoảng cách giữa tên cột và input */
+}
+
+.input-group input {
+    flex: 2;
+    padding: 10px;
+    font-size: 18px; /* Kích thước chữ input lớn hơn */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #5c0eec;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* button:hover {
+    background-color: #5c0eec;
+} */
+

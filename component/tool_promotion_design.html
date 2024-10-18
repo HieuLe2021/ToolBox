@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Promotion Design Tool - Toolbox</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <!-- Placeholder cho sidebar -->
+    <div id="sidebar-placeholder"></div>
+
+    <!-- Nội dung chính -->
+    <div id="content">
+        <h1>Promotion Design Tool</h1>
+        <p>Sử dụng công cụ này để thiết kế các ấn phẩm quảng cáo.</p>
+
+        <!-- Các nút chức năng cho Promotion Design -->
+        <div class="promotion-tools">
+            <button id="btn-add-banner">Add Banner</button>
+            <button id="btn-add-discount">Add Discount Box</button>
+        </div>
+
+        <!-- Vùng để hiển thị và tương tác với thiết kế -->
+        <div id="promotion-design-area" style="border: 1px solid #ced6e0; margin-top: 20px; padding: 20px;">
+            <p>Thiết kế của bạn sẽ hiển thị tại đây.</p>
+        </div>
+    </div>
+
+    <!-- JavaScript chung -->
+    <script src="../script/main.js"></script>
+    <script>
+        loadSidebar('link-tool-promotion-design');
+    </script>
+    <script src="../script/tool_promotion_design.js"></script>
+</body>
+</html>
