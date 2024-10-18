@@ -28,18 +28,32 @@ function handleFile(e) {
 
         reader.onload = function (e) {
             const data = e.target.result;
-            const workbook = XLSX.read(data, { type: 'binary' });  // Đọc file Excel và lưu vào một workbook riêng
+            const workbook = XLSX.read(data, { type: 'binary' });
 
-            workbooks[fileID] = workbook;  // Lưu workbook theo ID file
-            fileIDs[fileName] = fileID;  // Lưu tên file tương ứng với ID
+            // Lấy dữ liệu hiện tại từ localStorage (nếu có)
+            let existingData = JSON.parse(localStorage.getItem(fileID)) || {};
 
-            const sheetNames = workbook.SheetNames;
+            // Duyệt qua từng sheet trong workbook
+            workbook.SheetNames.forEach(sheetName => {
+                if (sheetName === 'hiddenSheet') return;  // Bỏ qua hiddenSheet nếu có
 
-            sheetNames.forEach(function (sheetName) {
-                if (sheetName === 'hiddenSheet') {
-                    return;  // Bỏ qua sheet có tên là "hiddenSheet"
-                }
+                const worksheet = workbook.Sheets[sheetName];
+                let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
+                // Format lại dữ liệu JSON thành array of objects
+                const columns = jsonData[0];  // Lấy tên các cột
+                const formattedRows = jsonData.slice(1).map(row => {
+                    const rowObject = {};
+                    row.forEach((cellData, index) => {
+                        rowObject[columns[index]] = cellData;
+                    });
+                    return rowObject;
+                });
+
+                // Lưu sheet vào `existingData`, thêm mới hoặc cập nhật nếu đã có
+                existingData[sheetName] = formattedRows;
+
+                // Tiếp tục phần hiển thị dữ liệu lên giao diện
                 const sheetContainer = document.createElement('div');
                 sheetContainer.classList.add('sheet-container');
                 sheetContainer.setAttribute('data-file-id', fileID);  // Lưu ID file vào div
@@ -54,36 +68,9 @@ function handleFile(e) {
                 toggleButton.classList.add('toggle-button');
                 toggleButton.innerHTML = '<i class="fas fa-plus"></i>';
 
-                const worksheet = workbook.Sheets[sheetName];
-                let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                // Loại bỏ các cột không cần thiết (ID, Row Checksum, Modified On)
-                const columnsToRemove = ['(Do Not Modify) ID', '(Do Not Modify) Row Checksum', '(Do Not Modify) Modified On'];
-                jsonData = jsonData.map(row => {
-                    return row.filter((cell, index) => {
-                        return !columnsToRemove.includes(jsonData[0][index]);  // Kiểm tra tên cột
-                    });
-                });
-
-                const columns = jsonData[0];  // Lấy tên các cột
-
-                // Format lại dữ liệu JSON thành array of objects
-                const formattedRows = jsonData.slice(1).map(row => {
-                    const rowObject = {};
-                    row.forEach((cellData, index) => {
-                        rowObject[columns[index]] = cellData;
-                    });
-                    return rowObject;
-                });
-
-                // Lưu vào localStorage
-                const storedData = JSON.parse(localStorage.getItem(fileID)) || [];
-                if (!storedData.length) {
-                    localStorage.setItem(fileID, JSON.stringify(formattedRows));
-                }
-
-                // Tính toán chiều rộng cột dựa trên dữ liệu
-                const colWidths = calculateColumnWidths(jsonData);
+                const sheetContent = document.createElement('div');
+                sheetContent.classList.add('sheet-content');
+                sheetContent.style.display = 'none';
 
                 toggleButton.addEventListener('click', function () {
                     if (sheetContent.style.display === 'none') {
@@ -113,10 +100,7 @@ function handleFile(e) {
                 sheetHeader.appendChild(buttonContainer);
                 sheetContainer.appendChild(sheetHeader);
 
-                const sheetContent = document.createElement('div');
-                sheetContent.classList.add('sheet-content');
-                sheetContent.style.display = 'none';
-
+                // Kiểm tra nếu không có dữ liệu
                 if (jsonData.length === 0) {
                     const noDataMsg = document.createElement('p');
                     noDataMsg.textContent = 'Sheet này không có dữ liệu.';
@@ -131,7 +115,7 @@ function handleFile(e) {
                     jsonData[0].forEach(function (cellData, index) {
                         const th = document.createElement('th');
                         th.textContent = cellData !== undefined ? cellData : '';
-                        th.style.width = `${colWidths[index]}px`;  // Căn chỉnh cột theo chiều rộng tính toán
+                        th.style.width = '150px';  // Căn chỉnh cột theo chiều rộng hợp lý
                         headerRow.appendChild(th);
                     });
                     table.appendChild(headerRow);
@@ -140,10 +124,9 @@ function handleFile(e) {
                     for (let i = 1; i < jsonData.length; i++) {
                         const rowData = jsonData[i];
                         const row = document.createElement('tr');
-                        rowData.forEach(function (cellData, index) {
+                        rowData.forEach(function (cellData) {
                             const td = document.createElement('td');
                             td.textContent = cellData !== undefined ? cellData : '';
-                            td.style.width = `${colWidths[index]}px`;  // Căn chỉnh cột theo chiều rộng tính toán
                             row.appendChild(td);
                         });
                         tbody.appendChild(row);
@@ -156,6 +139,13 @@ function handleFile(e) {
                 sheetContainer.appendChild(sheetContent);
                 excelDataDiv.appendChild(sheetContainer);
             });
+
+            // Cập nhật dữ liệu vào localStorage với key là fileID
+            localStorage.setItem(fileID, JSON.stringify(existingData));
+
+            // Lưu vào biến global để sử dụng sau này
+            workbooks[fileID] = workbook;
+            fileIDs[fileName] = fileID;  // Lưu tên file với fileID
         };
 
         reader.onerror = function (ex) {
@@ -168,47 +158,30 @@ function handleFile(e) {
 }
 
 
-// Hàm cập nhật workbook và lưu vào localStorage khi người dùng nhập dữ liệu
-// Hàm lưu dữ liệu vào localStorage (được cập nhật để hỗ trợ thêm hoặc cập nhật)
-function saveDataToLocalStorage(workbooks, fileID, sheetName, updatedRow) {
-    // Lấy dữ liệu từ localStorage (nếu có)
-    let storedData = localStorage.getItem('excelData');
-    let dataToSave = storedData ? JSON.parse(storedData) : { data: {}, timestamp: '' };
+function saveDataToLocalStorage(fileID, sheetName, updatedRow) {
+    // Lấy dữ liệu hiện có từ localStorage
+    const localData = JSON.parse(localStorage.getItem(fileID));
 
-    // Lấy workbook và sheet đúng từ workbooks
-    const workbook = workbooks[fileID];
-    const worksheet = workbook.Sheets[sheetName];
-    let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-    const columns = jsonData[0]; // Tên các cột
-    const rows = jsonData.slice(1); // Các dòng dữ liệu đã có
-
-    // Tạo đối tượng chứa các dữ liệu dưới dạng key-value (mỗi dòng dữ liệu là một đối tượng)
-    const formattedRows = rows.map(row => {
-        const rowObject = {};
-        row.forEach((cellData, index) => {
-            rowObject[columns[index]] = cellData;
-        });
-        return rowObject;
-    });
-
-    // Nếu sheet đã có dữ liệu trong localStorage thì cập nhật, nếu chưa có thì thêm mới
-    if (dataToSave.data[sheetName]) {
-        console.log(`Sheet ${sheetName} đã tồn tại trong localStorage, đang cập nhật...`);
-        dataToSave.data[sheetName].push(...formattedRows); // Cập nhật dữ liệu bằng cách thêm dòng mới
-    } else {
-        console.log(`Sheet ${sheetName} chưa có trong localStorage, thêm mới...`);
-        dataToSave.data[sheetName] = formattedRows; // Thêm mới dữ liệu
+    if (!localData) {
+        console.error(`Workbook with fileID ${fileID} does not exist in localStorage.`);
+        return;
     }
 
-    // Lưu lại thời gian cập nhật
-    dataToSave.timestamp = new Date().toISOString();
+    // Kiểm tra xem sheet đã tồn tại hay chưa
+    if (!localData[sheetName]) {
+        console.error(`Sheet with name ${sheetName} does not exist in file ${fileID}.`);
+        return;
+    }
 
-    // Lưu dữ liệu đã cập nhật vào localStorage
-    localStorage.setItem('excelData', JSON.stringify(dataToSave));
+    // Thêm dòng dữ liệu mới vào sheet
+    localData[sheetName].push(updatedRow);
 
-    console.log('Dữ liệu đã được cập nhật vào localStorage với timestamp:', dataToSave.timestamp);
+    // Cập nhật lại dữ liệu trong localStorage
+    localStorage.setItem(fileID, JSON.stringify(localData));
+
+    console.log(`Data for sheet ${sheetName} in file ${fileID} has been updated.`);
 }
+
 
 // Hàm hiển thị popup để thêm dữ liệu (cập nhật để gọi saveDataToLocalStorage)
 function showAddDataPopup(fileID, sheetName, dataRow) {
@@ -256,36 +229,41 @@ function showAddDataPopup(fileID, sheetName, dataRow) {
         saveDataButton.onclick = function () {
             const formData = new FormData(form);
             const updatedRow = [];
-            formData.forEach((value, key) => {
-                updatedRow.push(value);
-            });
-            console.log('Dữ liệu nhập vào:', updatedRow);
 
-            // Cập nhật workbook và sheet đúng
+            formData.forEach((value) => {
+                updatedRow.push(value);  // Thu thập dữ liệu từ form
+            });
+
+            // Tạo object theo cấu trúc ban đầu (dựa trên tên cột của sheet)
             const workbook = workbooks[fileID];  // Lấy đúng workbook từ file ID
-            const worksheet = workbook.Sheets[sheetName];  // Lấy đúng sheet từ workbook
+            const worksheet = workbook.Sheets[sheetName];
+            let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });  // Lấy dữ liệu hiện tại dưới dạng JSON
 
-            let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            const columnNames = jsonData[0];  // Tên các cột từ dòng đầu tiên
 
-            // Loại bỏ các cột không cần thiết (ID, Row Checksum, Modified On)
-            const columnsToRemove = ['(Do Not Modify) ID', '(Do Not Modify) Row Checksum', '(Do Not Modify) Modified On'];
-            jsonData = jsonData.map(row => {
-                return row.filter((cell, index) => {
-                    return !columnsToRemove.includes(jsonData[0][index]);  // Kiểm tra tên cột
-                });
+            // Chuyển array thành object với các key là tên cột
+            const newDataObject = {};
+            columnNames.forEach((colName, index) => {
+                newDataObject[colName] = updatedRow[index] !== undefined ? updatedRow[index] : null;  // Gán dữ liệu tương ứng với cột
             });
 
-            jsonData.push(updatedRow);  // Thêm dòng mới vào dữ liệu hiện tại
+            console.log('Dữ liệu nhập vào (dưới dạng object):', newDataObject);
 
-            // Cập nhật sheet với dữ liệu mới
-            const updatedSheet = XLSX.utils.aoa_to_sheet(jsonData);
+            // Cập nhật dữ liệu sheet với dòng mới dưới dạng object
+            jsonData.push(newDataObject);
+
+            // Cần chuyển jsonData (mảng các object) thành array of arrays để sử dụng với aoa_to_sheet
+            const updatedDataArray = [columnNames];  // Header
+            jsonData.slice(1).forEach(rowObject => {  // Bỏ qua header khi chuyển đổi
+                const rowArray = columnNames.map(col => rowObject[col]);  // Tạo mảng từ object
+                updatedDataArray.push(rowArray);  // Thêm vào mảng các dòng
+            });
+
+            // Cập nhật lại sheet với dữ liệu mới dưới dạng array of arrays
+            const updatedSheet = XLSX.utils.aoa_to_sheet(updatedDataArray);
             workbook.Sheets[sheetName] = updatedSheet;
 
-            // Ẩn popup và lớp nền
-            popup.style.display = 'none';
-            overlay.style.display = 'none';
-
-            // Cập nhật bảng HTML
+            // Cập nhật bảng HTML (thêm dòng mới)
             const table = document.querySelector(`.sheet-container[data-file-id="${fileID}"] .excel-table tbody`);
             const newRow = document.createElement('tr');
             updatedRow.forEach(function (cellData) {
@@ -295,9 +273,15 @@ function showAddDataPopup(fileID, sheetName, dataRow) {
             });
             table.appendChild(newRow);  // Thêm dòng mới vào bảng HTML
 
-            // Lưu dữ liệu cập nhật vào localStorage
-            saveDataToLocalStorage(workbooks, fileID, sheetName, updatedRow);
+            // Lưu dữ liệu vào localStorage theo đúng cấu trúc
+            saveDataToLocalStorage(fileID, sheetName, newDataObject);
+
+            // Ẩn popup và lớp nền
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
         };
+
+
 
         // Khi đóng popup
         closePopupButton.onclick = function () {
@@ -306,38 +290,6 @@ function showAddDataPopup(fileID, sheetName, dataRow) {
         };
     }, 0);
 }
-
-// Hàm lưu hoặc cập nhật dữ liệu vào localStorage
-// Function to save or update data in localStorage
-function saveDataToLocalStorage(fileID, sheetName, updatedRow) {
-    // Get current localStorage data
-    const localData = JSON.parse(localStorage.getItem(fileID)); // Use fileID directly
-    if (!localData) {
-        console.error(`Workbook with fileID ${fileID} does not exist in localStorage.`);
-        return;
-    }
-
-    const workbook = localData; // Assume this is already in the correct format
-
-    // Check if the sheet exists in the workbook
-    if (!workbook[sheetName]) {
-        console.error(`Sheet with name ${sheetName} does not exist in workbook ${fileID}.`);
-        return;
-    }
-
-    // Update the data in the existing sheet
-    workbook[sheetName].push(updatedRow);
-
-    // Save the updated workbook back to localStorage
-    localStorage.setItem(fileID, JSON.stringify(workbook));
-
-    console.log(`Data for sheet ${sheetName} in file ${fileID} has been updated.`);
-}
-
-
-
-
-
 
 // Hàm xóa dữ liệu từ localStorage khi tải lại trang
 window.addEventListener('DOMContentLoaded', function () {
